@@ -10,9 +10,11 @@ import (
 )
 
 type execCmd struct {
-	cmd *exec.Cmd
-	err io.ReadCloser
-	out io.ReadCloser
+	cmd   *exec.Cmd
+	err   io.ReadCloser
+	out   io.ReadCloser
+	in    io.WriteCloser
+	stdin *io.ReadCloser
 }
 
 func ExecCommand(input ...string) *execCmd {
@@ -28,8 +30,25 @@ func ExecCommand(input ...string) *execCmd {
 		LogE(errERR).Warning("Impossible to obtain the STDERR pipe")
 		return nil
 	}
+	stdin, errERR := cmd.StdinPipe()
+	if errERR != nil {
+		LogE(errERR).Warning("Impossible to obtain the STDIN pipe")
+		return nil
+	}
 
-	return &execCmd{cmd: cmd, err: stderr, out: stdout}
+	return &execCmd{cmd: cmd, err: stderr, out: stdout, in: stdin}
+}
+
+func (e *execCmd) StdIn(input io.ReadCloser) *execCmd {
+	if e == nil {
+		err := fmt.Errorf("Use of nil execCmd")
+		LogE(err).Error("Call StdIn with nil cmd, maybe error in the constructor")
+		return nil
+	}
+
+	e.stdin = &input
+
+	return e
 }
 
 func (e *execCmd) Start() error {
@@ -43,6 +62,24 @@ func (e *execCmd) Start() error {
 	if err != nil {
 		LogE(err).Error("Error in starting the command")
 		return err
+	}
+
+	if e.stdin != nil {
+		go func() {
+			defer (*e.stdin).Close()
+			n, err := io.Copy(e.in, *e.stdin)
+			if err != nil {
+				LogE(err).Error("Error in copying the input into STDIN.")
+				return
+			}
+			for n > 0 {
+				n, err = io.Copy(e.in, *e.stdin)
+				if err != nil {
+					LogE(err).Error("Error in copying the input into STDIN")
+					return
+				}
+			}
+		}()
 	}
 
 	slurpOut, errOUT := ioutil.ReadAll(e.out)

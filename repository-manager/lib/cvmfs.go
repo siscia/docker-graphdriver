@@ -62,16 +62,19 @@ func IngestIntoCVMFS(CVMFSRepo string, path string, target string) (err error) {
 		err = func() error {
 			os.MkdirAll(filepath.Dir(path), dirPermision)
 			os.Remove(path)
+
 			from, err := os.Open(target)
+			if err != nil {
+				return err
+			}
 			defer from.Close()
-			if err != nil {
-				return err
-			}
+
 			to, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, filePermision)
-			defer to.Close()
 			if err != nil {
 				return err
 			}
+			defer to.Close()
+
 			_, err = io.Copy(to, from)
 			return err
 		}()

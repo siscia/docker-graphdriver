@@ -388,7 +388,7 @@ func getLayerUrl(img Image, layer da.Layer) string {
 
 type downloadedLayer struct {
 	Name string
-	Path string
+	Path io.ReadCloser
 }
 
 func (img Image) GetLayers(layersChan chan<- downloadedLayer, manifestChan chan<- string, stopGettingLayers <-chan bool, rootPath string) error {
@@ -489,21 +489,7 @@ func (img Image) downloadLayer(layer da.Layer, token, rootPath string) (toSend d
 				continue
 			}
 
-			tmpFile, err := ioutil.TempFile(rootPath, "layer.*.tar")
-			if err != nil {
-				LogE(err).Warning("Error in creating buffer temp layer")
-				continue
-			}
-			defer tmpFile.Close()
-
-			_, err = io.Copy(tmpFile, gread)
-			if err != nil {
-				LogE(err).Warning("Error in copying the layer into the temp file")
-				os.Remove(tmpFile.Name())
-				continue
-			}
-
-			toSend = downloadedLayer{Name: layer.Digest, Path: tmpFile.Name()}
+			toSend = downloadedLayer{Name: layer.Digest, Path: gread}
 			return toSend, nil
 
 		} else {
