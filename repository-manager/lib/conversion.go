@@ -154,7 +154,7 @@ func ConvertWish(wish WishFriendly, convertAgain, forceDownload, convertSingular
 							"Created subcatalog in directory")
 					}
 				}
-				err = ExecCommand("cvmfs_server", "ingest", "-t", layer.Path, "-b", TrimCVMFSRepoPrefix(layerPath), wish.CvmfsRepo).Start()
+				err = ExecCommand("cvmfs_server", "ingest", "-t", "-", "-b", TrimCVMFSRepoPrefix(layerPath), wish.CvmfsRepo).StdIn(layer.Path).Start()
 
 				if err != nil {
 					LogE(err).WithFields(log.Fields{"layer": layer.Name}).Error("Some error in ingest the layer")
