@@ -482,7 +482,6 @@ func (img Image) downloadLayer(layer da.Layer, token, rootPath string) (toSend d
 			break
 		}
 		if 200 <= resp.StatusCode && resp.StatusCode < 300 {
-
 			gread, err := gzip.NewReader(resp.Body)
 			if err != nil {
 				LogE(err).Warning("Error in creating the zip to unzip the layer")

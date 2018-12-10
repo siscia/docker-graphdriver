@@ -67,7 +67,9 @@ func (e *execCmd) Start() error {
 	if e.stdin != nil {
 		go func() {
 			defer (*e.stdin).Close()
+			defer e.in.Close()
 			n, err := io.Copy(e.in, *e.stdin)
+			Log().WithFields(log.Fields{"n": n}).Info("Copied n bytes to STDIN")
 			if err != nil {
 				LogE(err).Error("Error in copying the input into STDIN.")
 				return
@@ -78,6 +80,7 @@ func (e *execCmd) Start() error {
 					LogE(err).Error("Error in copying the input into STDIN")
 					return
 				}
+				Log().WithFields(log.Fields{"n": n}).Info("Copied additionally n bytes to STDIN")
 			}
 		}()
 	}
